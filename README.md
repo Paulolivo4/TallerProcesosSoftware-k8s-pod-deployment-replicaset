@@ -122,10 +122,54 @@ Estado final: [`evidencias/05-estado-final.txt`](evidencias/05-estado-final.txt)
 
 **Limitación de este laboratorio.** Con 3 réplicas, cada Pod de Grafana guarda sus datos en su propio disco temporal (SQLite). Para producción, las réplicas deben compartir una base de datos externa (por ejemplo PostgreSQL) o usar almacenamiento persistente.
 
+## Parte 3: estrategias de despliegue (blue/green y canary)
+
+Demostración de las otras dos estrategias, con la imagen `hashicorp/http-echo`, que responde un texto con la versión. Cada prueba envía peticiones al Service desde un Pod dentro del clúster y cuenta qué versión respondió.
+
+### Blue/Green
+
+[`03-bluegreen/bluegreen.yml`](03-bluegreen/bluegreen.yml) crea dos Deployments completos (`app-blue` con "BLUE v1" y `app-green` con "GREEN v2", 2 réplicas cada uno) y un Service `miapp` cuyo **selector** apunta a `version: blue`. El cambio de tráfico consiste en modificar ese selector:
+
+```powershell
+kubectl patch service miapp --patch-file 03-bluegreen/patch-green.json   # pasa todo el tráfico a green
+kubectl patch service miapp --patch-file 03-bluegreen/patch-blue.json    # rollback inmediato a blue
+```
+
+Resultado de 10 peticiones en cada paso ([`evidencias/06-bluegreen.txt`](evidencias/06-bluegreen.txt)):
+
+| Paso | Respuestas |
+|---|---|
+| Service apuntando a blue | 10 × BLUE v1 |
+| Selector cambiado a green | 10 × GREEN v2 |
+| Rollback a blue | 10 × BLUE v1 |
+
+### Canary
+
+[`04-canary/canary.yml`](04-canary/canary.yml) crea `web-stable` (3 réplicas, "ESTABLE v1") y `web-canary` (1 réplica, "CANARY v2") detrás de un mismo Service. El reparto sale de la proporción de réplicas: 1 de 4 es canary (25 % esperado). Se promueve la nueva versión cambiando el número de réplicas:
+
+```powershell
+kubectl scale deployment web-canary --replicas=3
+kubectl scale deployment web-stable --replicas=1
+```
+
+Resultado de 40 peticiones en cada fase ([`evidencias/07-canary.txt`](evidencias/07-canary.txt)):
+
+| Fase | Réplicas (estable / canary) | Respuestas |
+|---|---|---|
+| 1 | 3 / 1 | 24 × ESTABLE v1, 16 × CANARY v2 |
+| 2 | 1 / 3 | 8 × ESTABLE v1, 32 × CANARY v2 |
+| 3 (promoción) | 0 / 4 | 40 × CANARY v2 |
+
+El reparto es **aproximado**, no exacto: el Service reparte al azar entre los Pods, por eso la fase 1 dio 40 % de canary en vez del 25 % teórico. Para porcentajes exactos se usan herramientas como Argo Rollouts, Flagger o un Ingress con pesos.
+
+**Nota sobre las etiquetas.** El Service del canary usa la etiqueta `app: canarydemo` y no `app: web`, porque el Pod `myfirstpod` del primer ejercicio ya tenía `app: web`. Con esa etiqueta, el Service enviaba también tráfico a ese Pod, que escucha en otro puerto, y fallaban cerca del 25 % de las peticiones.
+
 ## Limpieza
 
 ```powershell
 kubectl delete -f 02-deployment/
+kubectl delete -f 03-bluegreen/bluegreen.yml
+kubectl delete -f 04-canary/canary.yml
 kubectl delete service myfirstpod
 kubectl delete pod myfirstpod
 minikube stop

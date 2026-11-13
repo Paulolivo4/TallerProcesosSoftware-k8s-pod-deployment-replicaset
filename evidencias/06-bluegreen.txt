@@ -1,0 +1,56 @@
+﻿=== Blue/Green: despliegue
+
+> kubectl get deployments,pods -l app=miapp -L version
+NAME                        READY   UP-TO-DATE   AVAILABLE   AGE   VERSION
+deployment.apps/app-blue    2/2     2            2           86s   blue
+deployment.apps/app-green   2/2     2            2           86s   green
+
+NAME                             READY   STATUS    RESTARTS   AGE   VERSION
+pod/app-blue-9f485d86b-bf7mq     1/1     Running   0          86s   blue
+pod/app-blue-9f485d86b-n2n25     1/1     Running   0          86s   blue
+pod/app-green-6896879cb5-2g92k   1/1     Running   0          86s   green
+pod/app-green-6896879cb5-hgvrj   1/1     Running   0          86s   green
+
+
+> kubectl get svc miapp -o wide
+NAME    TYPE       CLUSTER-IP   EXTERNAL-IP   PORT(S)        AGE   SELECTOR
+miapp   NodePort   10.97.78.9   <none>        80:30238/TCP   86s   app=miapp,version=blue
+
+
+=== Paso 1: el Service apunta a BLUE
+
+> kubectl get svc miapp -o jsonpath="{.spec.selector}"
+{"app":"miapp","version":"blue"}
+
+
+> 10 peticiones al Service 'miapp' (desde un Pod dentro del clúster)
+ 10 x BLUE v1
+
+
+=== Paso 2: cambio de tráfico a GREEN (se modifica el selector del Service)
+
+> kubectl patch service miapp --patch-file C:\Users\User\k8s-taller\03-bluegreen\patch-green.json
+service/miapp patched
+
+
+> kubectl get svc miapp -o jsonpath="{.spec.selector}"
+{"app":"miapp","version":"green"}
+
+
+> 10 peticiones al Service 'miapp' (desde un Pod dentro del clúster)
+ 10 x GREEN v2
+
+
+=== Paso 3: rollback inmediato a BLUE
+
+> kubectl patch service miapp --patch-file C:\Users\User\k8s-taller\03-bluegreen\patch-blue.json
+service/miapp patched
+
+
+> kubectl get svc miapp -o jsonpath="{.spec.selector}"
+{"app":"miapp","version":"blue"}
+
+
+> 10 peticiones al Service 'miapp' (desde un Pod dentro del clúster)
+ 10 x BLUE v1
+

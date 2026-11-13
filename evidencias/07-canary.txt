@@ -1,0 +1,95 @@
+﻿=== Canary: despliegue (3 réplicas estables + 1 canary)
+
+> kubectl apply -f C:\Users\User\k8s-taller\04-canary\canary.yml
+deployment.apps/web-stable created
+deployment.apps/web-canary created
+service/web created
+
+
+> kubectl rollout status deployment/web-stable --timeout=180s
+Waiting for deployment "web-stable" rollout to finish: 0 of 3 updated replicas are available...
+Waiting for deployment "web-stable" rollout to finish: 1 of 3 updated replicas are available...
+Waiting for deployment "web-stable" rollout to finish: 2 of 3 updated replicas are available...
+deployment "web-stable" successfully rolled out
+
+
+> kubectl rollout status deployment/web-canary --timeout=180s
+deployment "web-canary" successfully rolled out
+
+
+> kubectl get deployments -l app=canarydemo
+NAME         READY   UP-TO-DATE   AVAILABLE   AGE
+web-canary   1/1     1            1           5s
+web-stable   3/3     3            3           5s
+
+
+> kubectl get pods -l app=canarydemo -L track
+NAME                          READY   STATUS    RESTARTS   AGE   TRACK
+web-canary-7b48d49b88-r69km   1/1     Running   0          5s    canary
+web-stable-994d67968-gs666    1/1     Running   0          5s    stable
+web-stable-994d67968-ksxh5    1/1     Running   0          5s    stable
+web-stable-994d67968-xwmjz    1/1     Running   0          5s    stable
+
+
+=== Fase 1: 1 de 4 réplicas es canary (reparto esperado: 25 % canary)
+
+> 40 peticiones al Service 'web' (desde un Pod dentro del clúster, contadas dentro del Pod)
+     16 CANARY v2
+     24 ESTABLE v1
+
+
+=== Fase 2: canary a 3 réplicas y estable a 1 (reparto esperado: 75 % canary)
+
+> kubectl scale deployment web-canary --replicas=3
+deployment.apps/web-canary scaled
+
+
+> kubectl scale deployment web-stable --replicas=1
+deployment.apps/web-stable scaled
+
+
+> kubectl rollout status deployment/web-canary --timeout=180s
+Waiting for deployment "web-canary" rollout to finish: 1 of 3 updated replicas are available...
+Waiting for deployment "web-canary" rollout to finish: 2 of 3 updated replicas are available...
+deployment "web-canary" successfully rolled out
+
+
+> kubectl rollout status deployment/web-stable --timeout=180s
+deployment "web-stable" successfully rolled out
+
+
+> kubectl get deployments -l app=canarydemo
+NAME         READY   UP-TO-DATE   AVAILABLE   AGE
+web-canary   3/3     3            3           21s
+web-stable   1/1     1            1           21s
+
+
+> 40 peticiones al Service 'web' (desde un Pod dentro del clúster, contadas dentro del Pod)
+     32 CANARY v2
+      8 ESTABLE v1
+
+
+=== Fase 3: promoción total, solo canary (v2) y estable en 0
+
+> kubectl scale deployment web-canary --replicas=4
+deployment.apps/web-canary scaled
+
+
+> kubectl scale deployment web-stable --replicas=0
+deployment.apps/web-stable scaled
+
+
+> kubectl rollout status deployment/web-canary --timeout=180s
+Waiting for deployment "web-canary" rollout to finish: 3 of 4 updated replicas are available...
+deployment "web-canary" successfully rolled out
+
+
+> kubectl get deployments -l app=canarydemo
+NAME         READY   UP-TO-DATE   AVAILABLE   AGE
+web-canary   4/4     4            4           35s
+web-stable   0/0     0            0           35s
+
+
+> 40 peticiones al Service 'web' (desde un Pod dentro del clúster, contadas dentro del Pod)
+     40 CANARY v2
+
