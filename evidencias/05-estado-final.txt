@@ -1,0 +1,72 @@
+﻿
+> kubectl get all -o wide
+NAME                           READY   STATUS    RESTARTS   AGE     IP            NODE       NOMINATED NODE   READINESS GATES
+pod/grafana-84bd96d55c-d2t9h   1/1     Running   0          68s     10.244.0.15   minikube   <none>           <none>
+pod/grafana-84bd96d55c-kh4d6   1/1     Running   0          91s     10.244.0.14   minikube   <none>           <none>
+pod/grafana-84bd96d55c-zd9kx   1/1     Running   0          91s     10.244.0.13   minikube   <none>           <none>
+pod/myfirstpod                 1/1     Running   0          5m24s   10.244.0.3    minikube   <none>           <none>
+
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE     SELECTOR
+service/grafana      NodePort    10.99.125.157   <none>        3000:32391/TCP   4m29s   app=grafana
+service/kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP          5m57s   <none>
+service/myfirstpod   NodePort    10.100.9.193    <none>        80:32197/TCP     5m13s   app=web
+
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE     CONTAINERS   IMAGES                       SELECTOR
+deployment.apps/grafana   3/3     3            3           4m29s   grafana      grafana/grafana-oss:11.2.0   app=grafana
+
+NAME                                 DESIRED   CURRENT   READY   AGE     CONTAINERS   IMAGES                       SELECTOR
+replicaset.apps/grafana-79b856fd96   0         0         0       2m35s   grafana      grafana/grafana-oss:11.3.0   app=grafana,pod-template-hash=79b856fd96
+replicaset.apps/grafana-84bd96d55c   3         3         3       4m29s   grafana      grafana/grafana-oss:11.2.0   app=grafana,pod-template-hash=84bd96d55c
+
+
+> kubectl describe deployment grafana
+Name:                   grafana
+Namespace:              default
+CreationTimestamp:      Thu, 12 Nov 2026 22:31:02 -0500
+Labels:                 app=grafana
+Annotations:            deployment.kubernetes.io/revision: 3
+Selector:               app=grafana
+Replicas:               3 desired | 3 updated | 3 total | 3 available | 0 unavailable
+StrategyType:           RollingUpdate
+MinReadySeconds:        0
+RollingUpdateStrategy:  1 max unavailable, 1 max surge
+Pod Template:
+  Labels:  app=grafana
+  Containers:
+   grafana:
+    Image:      grafana/grafana-oss:11.2.0
+    Port:       3000/TCP
+    Host Port:  0/TCP
+    Limits:
+      cpu:     250m
+      memory:  256Mi
+    Requests:
+      cpu:         50m
+      memory:      128Mi
+    Readiness:     http-get http://:3000/api/health delay=5s timeout=1s period=5s #success=1 #failure=3
+    Environment:   <none>
+    Mounts:        <none>
+  Volumes:         <none>
+  Node-Selectors:  <none>
+  Tolerations:     <none>
+Conditions:
+  Type           Status  Reason
+  ----           ------  ------
+  Available      True    MinimumReplicasAvailable
+  Progressing    True    NewReplicaSetAvailable
+OldReplicaSets:  grafana-79b856fd96 (0/0 replicas created)
+NewReplicaSet:   grafana-84bd96d55c (3/3 replicas created)
+Events:
+  Type    Reason             Age                From                   Message
+  ----    ------             ----               ----                   -------
+  Normal  ScalingReplicaSet  4m29s              deployment-controller  Scaled up replica set grafana-84bd96d55c from 0 to 3
+  Normal  ScalingReplicaSet  3m4s               deployment-controller  Scaled up replica set grafana-84bd96d55c from 3 to 5
+  Normal  ScalingReplicaSet  2m42s              deployment-controller  Scaled down replica set grafana-84bd96d55c from 5 to 3
+  Normal  ScalingReplicaSet  2m35s              deployment-controller  Scaled up replica set grafana-79b856fd96 from 0 to 1
+  Normal  ScalingReplicaSet  2m35s              deployment-controller  Scaled down replica set grafana-84bd96d55c from 3 to 2
+  Normal  ScalingReplicaSet  2m35s              deployment-controller  Scaled up replica set grafana-79b856fd96 from 1 to 2
+  Normal  ScalingReplicaSet  114s               deployment-controller  Scaled down replica set grafana-84bd96d55c from 2 to 1
+  Normal  ScalingReplicaSet  113s               deployment-controller  Scaled up replica set grafana-79b856fd96 from 2 to 3
+  Normal  ScalingReplicaSet  113s               deployment-controller  Scaled down replica set grafana-84bd96d55c from 1 to 0
+  Normal  ScalingReplicaSet  68s (x6 over 91s)  deployment-controller  (combined from similar events): Scaled down replica set grafana-79b856fd96 from 1 to 0
+

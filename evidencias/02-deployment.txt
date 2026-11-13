@@ -1,0 +1,37 @@
+﻿
+> kubectl apply -f grafana-deployment.yml
+deployment.apps/grafana created
+
+
+> kubectl apply -f grafana-service.yml
+service/grafana created
+
+
+> kubectl rollout status deployment/grafana --timeout=420s
+Waiting for deployment "grafana" rollout to finish: 0 of 3 updated replicas are available...
+Waiting for deployment "grafana" rollout to finish: 1 of 3 updated replicas are available...
+Waiting for deployment "grafana" rollout to finish: 2 of 3 updated replicas are available...
+deployment "grafana" successfully rolled out
+
+
+> kubectl get deployments
+NAME      READY   UP-TO-DATE   AVAILABLE   AGE
+grafana   3/3     3            3           53s
+
+
+> kubectl get replicasets
+NAME                 DESIRED   CURRENT   READY   AGE
+grafana-84bd96d55c   3         3         3       53s
+
+
+> kubectl get pods -l app=grafana -o wide
+NAME                       READY   STATUS    RESTARTS   AGE   IP           NODE       NOMINATED NODE   READINESS GATES
+grafana-84bd96d55c-2m4bv   1/1     Running   0          54s   10.244.0.5   minikube   <none>           <none>
+grafana-84bd96d55c-9jxfh   1/1     Running   0          54s   10.244.0.4   minikube   <none>           <none>
+grafana-84bd96d55c-c2bf7   1/1     Running   0          54s   10.244.0.6   minikube   <none>           <none>
+
+
+> kubectl get svc grafana
+NAME      TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+grafana   NodePort   10.99.125.157   <none>        3000:32391/TCP   54s
+

@@ -1,0 +1,64 @@
+﻿=== 1. Autorrecuperación: borrar un Pod
+
+> kubectl delete pod grafana-84bd96d55c-2m4bv
+pod "grafana-84bd96d55c-2m4bv" deleted from default namespace
+
+
+> kubectl get pods -l app=grafana
+NAME                       READY   STATUS    RESTARTS   AGE
+grafana-84bd96d55c-9jxfh   1/1     Running   0          64s
+grafana-84bd96d55c-c2bf7   1/1     Running   0          64s
+grafana-84bd96d55c-n2gf9   0/1     Running   0          2s
+
+
+> kubectl rollout status deployment/grafana --timeout=120s
+Waiting for deployment "grafana" rollout to finish: 2 of 3 updated replicas are available...
+deployment "grafana" successfully rolled out
+
+
+> kubectl get pods -l app=grafana
+NAME                       READY   STATUS    RESTARTS   AGE
+grafana-84bd96d55c-9jxfh   1/1     Running   0          84s
+grafana-84bd96d55c-c2bf7   1/1     Running   0          84s
+grafana-84bd96d55c-n2gf9   1/1     Running   0          22s
+
+=== 2. Escalado: de 3 a 5 réplicas
+
+> kubectl scale deployment grafana --replicas=5
+deployment.apps/grafana scaled
+
+
+> kubectl rollout status deployment/grafana --timeout=180s
+Waiting for deployment "grafana" rollout to finish: 3 of 5 updated replicas are available...
+Waiting for deployment "grafana" rollout to finish: 4 of 5 updated replicas are available...
+deployment "grafana" successfully rolled out
+
+
+> kubectl get deployment,replicaset,pods -l app=grafana
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/grafana   5/5     5            5           106s
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/grafana-84bd96d55c   5         5         5       106s
+
+NAME                           READY   STATUS    RESTARTS   AGE
+pod/grafana-84bd96d55c-4qpg8   1/1     Running   0          21s
+pod/grafana-84bd96d55c-9jxfh   1/1     Running   0          106s
+pod/grafana-84bd96d55c-c2bf7   1/1     Running   0          106s
+pod/grafana-84bd96d55c-hv2pd   1/1     Running   0          21s
+pod/grafana-84bd96d55c-n2gf9   1/1     Running   0          44s
+
+=== 3. Escalado: de vuelta a 3 réplicas
+
+> kubectl scale deployment grafana --replicas=3
+deployment.apps/grafana scaled
+
+
+> kubectl rollout status deployment/grafana --timeout=120s
+deployment "grafana" successfully rolled out
+
+
+> kubectl get replicaset -l app=grafana
+NAME                 DESIRED   CURRENT   READY   AGE
+grafana-84bd96d55c   3         3         3       107s
+
